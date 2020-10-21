@@ -1,5 +1,7 @@
 # 在neovim中使用Lua
 
+[nvim-lua-guide](https://github.com/nanotee/nvim-lua-guide) 中文版.
+
 ## 目录
 
 * [简介](#introduction)
