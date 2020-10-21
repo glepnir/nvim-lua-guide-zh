@@ -237,8 +237,27 @@ See also:
 :luafile ~/foo/bar/baz/myluafile.lua
 ```
 
-类似于vims的`：source`命令或Lua内置的`dofile()`函数。
+类似于vim的`：source`命令或Lua内置的`dofile()`函数。
 
 See also:
 
 - `:help :luafile`
+
+#### luafile 对比 require():
+
+您可能想知道`lua request()`和`luafile`之间的区别是什么，以及您是否应该使用其中一个而不是另一个。 它们有不同的使用情形：
+
+- `require()`:
+    - 是内置的Lua函数，它允许你使用Lua的模块系统。
+    - 使用`Package.path`变量搜索模块(如前所述，您可以使用`runtimepath`中的`lua/`文件夹内的`required()`lua脚本)
+    - 跟踪已加载的模块，并防止第二次解析和执行脚本。 如果您更改包含某个模块代码的文件，并在Neovim运行时再次尝试‘required()’，则该模块实际上不会更新。
+- `:luafile`:
+    - 是一个执行命令，它不支持模块。
+    - 采用相对于当前窗口的工作目录的绝对或相对路径
+    - 执行脚本的内容，而不管该脚本以前是否执行过
+
+如果您想运行您正在处理的Lua文件，`：luafile`很有用：
+
+```vim
+:luafile %
+```
