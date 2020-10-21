@@ -145,5 +145,100 @@ require('other_modules') -- loads other_modules/init.lua
 
 #### 提示
 
-多个Lua插件在它们的`lua/`文件夹中可能有相同的文件名。 这可能会导致命名空间冲突。如果两个不同的插件有一个`lua/main.lua`文件，那么执行`require('main')`是不明确的：我们想要加载哪个文件？
-最好将您的配置或插件命名为顶级文件夹，如下所示：`lua/plugin_name/main.lua`。
+多个Lua插件在它们的`lua/`文件夹中可能有相同的文件名。 这可能会导致命名空间冲突。如果两个不同的插件有一个`lua/main.lua`文件，那么执行`require('main')`是不明确的：我们想要加载哪个文件？最好将您的配置或插件命名为顶级文件夹，
+例如这样的形式：`lua/plugin_name/main.lua`。
+
+#### 包说明
+
+如果您是`package`特性的用户或基于它的插件管理器例如[packer.nvim](https://github.com/wbthomason/packer.nvim)，[minpac](https://github.com/k-takata/minpac)或[vim-packager](https://github.com/kristijanhusak/vim-packager/)，那么在使用Lua插件时需要注意一些事情。`start`文件夹中的包只有在源化您的`init.vim`之后才会加载。 这意味着只有在Neovim处理完文件之后，才会将包添加到`runtimepath`中。如果插件期望
+`require`一个Lua模块或调用自动加载的函数，这可能会导致问题。假设包`start/foo`有一个`lua/bar.lua`文件，从您的`init.vim`执行此操作将引发错误，因为`runtimepath`尚未更新。
+
+```vim
+lua require('bar')
+```
+
+你需要使用`packadd! foo`命令在`require` 这个模块之前
+
+```vim
+packadd! foo
+lua require('bar')
+```
+
+在`Packadd`后附加`！`表示Neovim会将包放在`runtimepath`中，而不会在其`plugin`或`ftDetect`目录下寻找任何脚本。
+
+See also:
+- `:help :packadd`
+- [Issue #11409](https://github.com/neovim/neovim/issues/11409)
+
+## 在Vimscript中使用Lua
+
+### :lua
+
+该命令执行一段Lua代码
+
+```vim
+:lua require('myluamodule')
+```
+
+可以使用以下语法编写多行脚本：
+
+```vim
+echo "Here's a bigger chunk of Lua code"
+
+lua << EOF
+local mod = require('mymodule')
+local tbl = {1, 2, 3}
+
+for k, v in ipairs(tbl) do
+    mod.method(v)
+end
+
+print(tbl)
+EOF
+```
+
+See also:
+
+- `:help :lua`
+- `:help :lua-heredoc`
+
+#### 警告
+
+在vim文件中编写Lua时，您不会得到正确的语法突出显示。 使用`：lua`命令作为需要外部Lua文件的入口点可能会更方便。
+
+### :luado
+
+This command executes a chunk of Lua code that acts on a range of lines in the current buffer. If no range is specified, the whole buffer is used instead. Whatever string is `return`ed from the chunk is used to determine what each line should be replaced with.
+
+The following command would replace every line in the current buffer with the text `hello world`:
+该命令执行一段Lua代码，该代码作用于当前缓冲区中的选中的行。 如果未指定范围，则改为使用整个缓冲区。 从块`return`的任何字符串都用于确定应该用什么替换每行。
+
+以下命令会将当前缓冲区中的每一行替换为文本`hello world`
+
+```vim
+:luado return 'hello world'
+```
+
+提供了两个隐式的`line`和`linenr`变量。 `line`是被迭代的行的文本，而`linenr`是它的编号。 以下命令将可以被2整数的行转成大写:
+
+```vim
+:luado if linenr % 2 == 0 then return line:upper() end
+```
+
+See also:
+
+- `:help :luado`
+
+### :luafile
+
+这个命令加载一个lua文件
+
+```vim
+:luafile ~/foo/bar/baz/myluafile.lua
+```
+
+类似于vims的`：source`命令或Lua内置的`dofile()`函数。
+
+See also:
+
+- `:help :luafile`
