@@ -56,7 +56,7 @@
 ## 简介
 
 Lua作为Neovim中的一流语言的集成正在成为它的杀手级特性之一。 然而，学习如何用Lua编写插件的教程数量并不像用Vimscript编写插件那样多。 这是一种尝试，试图提供一些基本信息,让人们可以使用Lua编写neovim插件。
-本指南假定您使用的是最新的Neovim[Nighly build](https://github.com/neovim/neovim/releases/tag/nightly)]。 由于Neovim的0.5版本是开发版本，请记住，正在积极开发的一些API并不十分稳定，
+本指南假定使用的是最新的Neovim[Nighly build](https://github.com/neovim/neovim/releases/tag/nightly)]。 由于Neovim的0.5版本是开发版本，请记住，正在积极开发的一些API并不十分稳定，
 在发布之前可能会发生变化。
 
 ### 学习Lua
@@ -92,7 +92,7 @@ Lua是一种非常干净和简单的语言。 它很容易学习，特别是如�
 
 ## Lua 文件位置
 
-Lua文件通常位于您的`runtimepath`中的`lua/`文件夹中(对于大多数用户来说，在*nix系统上为`~/.config/nvim/lua`，在Windows系统上为`~/appdata/Local/nvim/lua`)。 `Package.path`和`Package.cpath`全局变量会自动调整为包含该文件夹下的Lua文件。 这意味着您可以`require()`这些文件作为Lua模块
+Lua文件通常位于的`runtimepath`中的`lua/`文件夹中(对于大多数用户来说，在*nix系统上为`~/.config/nvim/lua`，在Windows系统上为`~/appdata/Local/nvim/lua`)。 `Package.path`和`Package.cpath`全局变量会自动调整为包含该文件夹下的Lua文件。 这意味着你可以`require()`这些文件作为Lua模块
 
 我们以下面的文件夹结构为例：
 
@@ -139,19 +139,19 @@ require('other_modules') -- loads other_modules/init.lua
 
 #### 警告
 
-与.vim文件不同，.lua文件不会自动从您的`runtimepath`目录中获取。 相反，您必须从Vimscript source/require 它们。 计划增加`init.lua`文件加载选项，替代`init.vim`：
+与.vim文件不同，.lua文件不会自动从的`runtimepath`目录中获取。 相反，您必须从Vimscript source/require 它们。 计划增加`init.lua`文件加载选项，替代`init.vim`：
 - [Issue #7895](https://github.com/neovim/neovim/issues/7895)
 - [Corresponding pull request](https://github.com/neovim/neovim/pull/12235)
 
 #### 提示
 
-多个Lua插件在它们的`lua/`文件夹中可能有相同的文件名。 这可能会导致命名空间冲突。如果两个不同的插件有一个`lua/main.lua`文件，那么执行`require('main')`是不明确的：我们想要加载哪个文件？最好将您的配置或插件命名为顶级文件夹，
+多个Lua插件在它们的`lua/`文件夹中可能有相同的文件名。 这可能会导致命名空间冲突。如果两个不同的插件有一个`lua/main.lua`文件，那么执行`require('main')`是不明确的：我们想要加载哪个文件？最好将的配置或插件命名为顶级文件夹，
 例如这样的形式：`lua/plugin_name/main.lua`。
 
 #### 包说明
 
-如果您是`package`特性的用户或基于它的插件管理器例如[packer.nvim](https://github.com/wbthomason/packer.nvim)，[minpac](https://github.com/k-takata/minpac)或[vim-packager](https://github.com/kristijanhusak/vim-packager/)，那么在使用Lua插件时需要注意一些事情。`start`文件夹中的包只有在源化您的`init.vim`之后才会加载。 这意味着只有在Neovim处理完文件之后，才会将包添加到`runtimepath`中。如果插件期望
-`require`一个Lua模块或调用自动加载的函数，这可能会导致问题。假设包`start/foo`有一个`lua/bar.lua`文件，从您的`init.vim`执行此操作将引发错误，因为`runtimepath`尚未更新。
+如果是`package`特性的用户或基于它的插件管理器例如[packer.nvim](https://github.com/wbthomason/packer.nvim)，[minpac](https://github.com/k-takata/minpac)或[vim-packager](https://github.com/kristijanhusak/vim-packager/)，那么在使用Lua插件时需要注意一些事情。`start`文件夹中的包只有在源化您的`init.vim`之后才会加载。 这意味着只有在Neovim处理完文件之后，才会将包添加到`runtimepath`中。如果插件期望
+`require`一个Lua模块或调用自动加载的函数，这可能会导致问题。假设包`start/foo`有一个`lua/bar.lua`文件，从的`init.vim`执行此操作将引发错误，因为`runtimepath`尚未更新。
 
 ```vim
 lua require('bar')
@@ -204,7 +204,7 @@ See also:
 
 #### 警告
 
-在vim文件中编写Lua时，您不会得到正确的语法突出显示。 使用`：lua`命令作为需要外部Lua文件的入口点可能会更方便。
+在vim文件中编写Lua时，不会得到正确的语法突出显示。 使用`：lua`命令作为需要外部Lua文件的入口点可能会更方便。
 
 ### :luado
 
@@ -242,18 +242,18 @@ See also:
 
 #### luafile 对比 require():
 
-您可能想知道`lua request()`和`luafile`之间的区别是什么，以及您是否应该使用其中一个而不是另一个。 它们有不同的使用情形：
+可能想知道`lua request()`和`luafile`之间的区别是什么，以及你是否应该使用其中一个而不是另一个。 它们有不同的使用情形：
 
 - `require()`:
     - 是内置的Lua函数，它允许你使用Lua的模块系统。
-    - 使用`Package.path`变量搜索模块(如前所述，您可以使用`runtimepath`中的`lua/`文件夹内的`required()`lua脚本)
-    - 跟踪已加载的模块，并防止第二次解析和执行脚本。 如果您更改包含某个模块代码的文件，并在Neovim运行时再次尝试‘required()’，则该模块实际上不会更新。
+    - 使用`Package.path`变量搜索模块(如前所述，可以使用`runtimepath`中的`lua/`文件夹内的`required()`lua脚本)
+    - 跟踪已加载的模块，并防止第二次解析和执行脚本。 如果更改包含某个模块代码的文件，并在Neovim运行时再次尝试‘required()’，则该模块实际上不会更新。
 - `:luafile`:
     - 是一个执行命令，它不支持模块。
     - 采用相对于当前窗口的工作目录的绝对或相对路径
     - 执行脚本的内容，而不管该脚本以前是否执行过
 
-如果您想运行您正在处理的Lua文件，`：luafile`很有用：
+如果想运行你正在处理的Lua文件，`：luafile`很有用：
 
 ```vim
 :luafile %
