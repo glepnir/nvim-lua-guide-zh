@@ -268,8 +268,7 @@ Neovim会暴露一个全局的`vim`变量来作为lua调用vim的APIs的入口�
 - `vim.inspect`: 把lua对象以更易读的方式打印(在打印lua table是会很有用)
 - `vim.regex`: 在lua中使用vim寄存器
 - `vim.api`: 暴露vim的API(`:h API`)的模块(别的远程调用也是调用同样的API)
-TODO
-- `vim.loop`: module that exposes the functionality of Neovim's event-loop (using LibUV)
+- (TODO) `vim.loop`: module that exposes the functionality of Neovim's event-loop (using LibUV)
 - `vim.lsp`: 控制内置LSP客户端的模块
 - `vim.treesitter`: 暴露tree-sitter库中一些实用函数的模块
 
