@@ -208,9 +208,6 @@ See also:
 
 ### :luado
 
-This command executes a chunk of Lua code that acts on a range of lines in the current buffer. If no range is specified, the whole buffer is used instead. Whatever string is `return`ed from the chunk is used to determine what each line should be replaced with.
-
-The following command would replace every line in the current buffer with the text `hello world`:
 该命令执行一段Lua代码，该代码作用于当前缓冲区中的选中的行。 如果未指定范围，则改为使用整个缓冲区。 从块`return`的任何字符串都用于确定应该用什么替换每行。
 
 以下命令会将当前缓冲区中的每一行替换为文本`hello world`
