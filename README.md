@@ -1,6 +1,8 @@
 # 在neovim中使用Lua
 
-[nvim-lua-guide](https://github.com/nanotee/nvim-lua-guide) 中文版.与原版不同的是我添加了一些我的例子和教程以及我制作的相关插件。更进阶的使用可以参考我的一些使用lua编写的插件和我的配置。
+[nvim-lua-guide](https://github.com/nanotee/nvim-lua-guide) 中文版简易教程。与原版不同的是我添加了一些我的例子和教程以及我制作的相关插件。更进阶的使用可以参考我的一些使用lua编写的插件和我的配置。
+
+关于我: Neovim Built-in Lsp 贡献者和维护者，Nvim-lua/lsp_extensions维护者。
 
 ## 目录
 
