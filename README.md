@@ -2,6 +2,8 @@
 
 [nvim-lua-guide](https://github.com/nanotee/nvim-lua-guide) 中文版简易教程
 
+译者: Neovim Lsp and Nvim-lua/lsp_extensions 开发团队成员
+
 ## 目录
 
 - [在 neovim 中使用 Lua](#在 neovim 中使用 lua)
