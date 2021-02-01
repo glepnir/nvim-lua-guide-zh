@@ -651,7 +651,7 @@ See also:
     - `vim.api.nvim_win_set_var()`
     - `vim.api.nvim_win_get_var()`
     - `vim.api.nvim_win_del_var()`
-- 选项卡变脸 (`t:`):
+- 选项卡变量 (`t:`):
     - `vim.api.nvim_tabpage_set_var()`
     - `vim.api.nvim_tabpage_get_var()`
     - `vim.api.nvim_tabpage_del_var()`
