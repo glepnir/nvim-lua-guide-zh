@@ -2,7 +2,7 @@
 
 [nvim-lua-guide](https://github.com/nanotee/nvim-lua-guide) 中文版简易教程
 
-译者: Neovim Lsp and Nvim-lua/lsp_extensions 开发团队成员
+译者: Neovim Core Developer 负责内置lsp和neovim go的rpc client
 
 ## 目录
 
