@@ -80,7 +80,7 @@ Lua 是一种非常干净和简单的语言。它很容易学习，特别是如�
 - [teukka.tech - 从 init.vim 转到 init.lua](https://teukka.tech/luanvim.html)
 - [2n.pl - 如何使用 Lua 编写 neovim 插件](https://www.2n.pl/blog/how-to-write-neovim-plugins-in-lua.md)
 - [2n.pl - 如何使用 Lua 制作 neovim UI](https://www.2n.pl/blog/how-to-make-ui-for-neovim-plugins-in-lua)
-- [ms-jpq - NeoVim 异步教程](https://ms-jpq.github.io/neovim-async-tutorial/)
+- [ms-jpq - NeoVim 异步教程](https://ms-jpq.github.io/lua-async-await/index.html)
 
 ### 相关插件
 
