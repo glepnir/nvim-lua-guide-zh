@@ -20,8 +20,8 @@
     - [:lua](#lua)
       - [警告](#警告-1)
     - [:luado](#luado)
-    - [:luafile](#luafile)
-      - [luafile 对比 require():](#luafile-对比-require)
+    - [加载 Lua 文件](#加载 Lua 文件)
+      - [加载 Lua 文件对比 require():](#加载 Lua 文件对比 require():)
     - [luaeval()](#luaeval)
     - [v:lua](#vlua)
       - [Caveats](#caveats)
@@ -104,7 +104,7 @@ Neovim 支持从 `init.lua` 文件加载配置而不是通常的 `init.vim` 文�
 
 ### 模块
 
-Lua 模块通常位于您的 `runtimepath` 中的 `lua/` 文件夹中（对于大多数用户来说，在 *nix 系统上为 `~/.config/nvim/lua`，在 Windows 系统上为 `~/appdata/Local/nvim/lua`)。`Package.path` 和 `Package.cpath` 全局变量会自动调整为包含该文件夹下的 Lua 文件。这意味着您可以 `require()` 这些文件作为 Lua 模块
+Lua 模块通常位于您的 `runtimepath` 中的 `lua/` 文件夹中（对于大多数用户来说，在 *nix 系统上为 `~/.config/nvim/lua`，在 Windows 系统上为 `~/appdata/Local/nvim/lua`)。这意味着您可以 `require()` 这些文件作为 Lua 模块
 
 我们以下面的文件夹结构为例：
 
@@ -156,7 +156,7 @@ if not ok then
 end
 ```
 
-更多信息参见：
+更多信息请参见：
 
 * [`:help lua-require`](https://neovim.io/doc/user/lua.html#lua-require)
 
@@ -214,14 +214,20 @@ print(tbl)
 EOF
 ```
 
-See also:
+注意：每个 `:lua` 命令都有它自己独立的作用域，在一条 `:lua` 命令中使用 `local` 关键字声明的变量是无法在这条命令之外访问的。如下代码所示
 
-- `:help :lua`
-- `:help :lua-heredoc`
+```vim
+:lua local foo = 1
+:lua print(foo)
+" prints 'nil' instead of '1'
+```
 
-#### 警告
+注意：Lua 中的 `print()` 函数的行为类似于 `:echomsg` 命令。它的输出会被保存在消息历史中，可以使用 `:slient` 命令来抛弃输出。
 
-在 Vim 文件中编写 Lua 时，您不会得到正确的语法突出显示。使用 `:lua` 命令作为需要外部 Lua 文件的入口点可能会更方便。
+更多信息请参见：
+
+- [`:help :lua`](https://neovim.io/doc/user/lua.html#Lua)
+- [`:help :lua-heredoc`](https://neovim.io/doc/user/lua.html#:lua-heredoc)
 
 ### :luado
 
@@ -239,42 +245,56 @@ See also:
 :luado if linenr % 2 == 0 then return line:upper() end
 ```
 
-See also:
+更多信息请参见：
 
-- `:help :luado`
+- [`:help :luado`](https://neovim.io/doc/user/lua.html#:luado)
 
-### :luafile
+### 加载 Lua 文件
 
-这个命令加载一个 lua 文件
+Neovim 提供了三种执行命令来加载 Lua 文件
+
+* `:luafile`
+* `:source`
+* `:runtime`
+
+其中 `:luafile` 和 `:source` 非常类似：
 
 ```vim
-:luafile ~/foo/bar/baz/myluafile.lua
+:luafile ~/foo/bar/baz/myluafile.lua " 加载 myluafile.lua
+:luafile %                           " 加载当前正在处理的文件
+:source ~/foo/bar/baz/myluafile.lua
+:source %
 ```
 
-类似于 Vim 的 `:source` 命令或 Lua 内置的 `dofile()` 函数。
+两种命令都可以指定文件范围，可以只执行脚本的一部分
 
-See also:
+```vim
+:1,10source
+```
 
-- `:help :luafile`
+`:runtime` 与上述两种命令有所不同，它使用 `'runtimepath'` 选项来决定加载哪个文件。更多细节信息请参见  [`:help :runtime`](https://neovim.io/doc/user/repeat.html#:runtime)
 
-#### luafile 对比 require():
+更多信息请参见:
 
-您可能想知道 `lua require()` 和 `luafile` 之间的区别是什么，以及您是否应该使用其中一个而不是另一个。它们有不同的使用情形：
+- [`:help :luafile`](https://neovim.io/doc/user/lua.html#:luafile)
+- [`:help :source`](https://neovim.io/doc/user/repeat.html#:source)
+- [`:help :runtime`](https://neovim.io/doc/user/repeat.html#:runtime)
+
+####  加载 Lua 文件对比 require():
+
+您可能想知道调用 `require()` 函数和使用上述命令加载之间的区别是什么，以及您是否应该使用其中一个而不是另一个。它们有不同的使用情形：
 
 - `require()`:
-    - 是内置的 Lua 函数，它允许你使用 Lua 的模块系统。
-    - 使用 `Package.path` 变量搜索模块（如前所述，您可以使用 `runtimepath` 中的 `lua/` 文件夹内的 `required()` lua 脚本）
-    - 跟踪已加载的模块，并防止第二次解析和执行脚本。如果您更改包含某个模块代码的文件，并在 Neovim 运行时再次尝试 `required()`，则该模块实际上不会更新。
-- `:luafile`:
-    - 是一个执行命令，它不支持模块。
-    - 采用相对于当前窗口的工作目录的绝对或相对路径
+    - 是内置的 Lua 函数，它允许你使用 Lua 的模块系统
+    - 在 `'runtimepath'` 中的 `lua/` 文件夹中搜索模块
+    - 跟踪已加载的模块，并防止第二次解析和执行脚本。如果您更改包含某个模块代码的文件，并在 Neovim 运行时再次尝试 `required()`，则该模块实际上不会更新
+- `:luafile`/`:source`/`:runtime`:
+    - 是一个执行命令，它不支持模块
     - 执行脚本的内容，而不管该脚本以前是否执行过
+    - `:luafile`/`:source` 命令采用相对于当前窗口的工作目录的绝对或相对路径
+    - `:runtime` 命令使用 `'runtimepath'` 选项来寻找文件
 
-如果您想运行您正在处理的 Lua 文件，`:luafile` 很有用：
-
-```vim
-:luafile %
-```
+同时，通过 `:source`/`:runtime` 命令（不包括  `:luafile` ）加载或者从运行时目录被自动加载的文件会显示在 `:scriptnames` 和 `--startuptime` 中。
 
 ### luaeval()
 
@@ -330,12 +350,12 @@ echo luaeval('string.format("Lua is %s", _A)', 'awesome')
 " 'Lua is awesome'
 ```
 
-See also:
-- `:help luaeval()`
+更多信息请参见：
+- [`:help luaeval()`](https://neovim.io/doc/user/lua.html#luaeval())
 
 ### v:lua
 
-这个全局 Vim 变量允许您直接从 Vimscript 调用全局 Lua 函数。同样 Vim 数据类型被转换为 Lua 类型，反之亦然。
+这个全局 Vim 变量允许您直接从 Vimscript 调用全局 Lua 函数（[`_G`](https://www.lua.org/manual/5.1/manual.html#pdf-_G)）。同样 Vim 数据类型被转换为 Lua 类型，反之亦然。
 
 ```vim
 call v:lua.print('Hello from Lua!')
@@ -381,26 +401,33 @@ inoremap <silent> <expr> <Tab>
     \ pumvisible() ? '\<C-n>' :
     \ v:lua.check_back_space() ? '\<Tab>' :
     \ completion#trigger_completion()
+
+" 通过使用单引号包围模块名并省略 require 的括号来调用 Lua 模块中的函数
+call v:lua.require'module'.foo()
 ```
 
-See also:
-- `:help v:lua`
-- `:help v:lua-call`
+更多信息请参见：
+- [`:help v:lua`](https://neovim.io/doc/user/eval.html#v:lua)
+- [`:help v:lua-call`](https://neovim.io/doc/user/lua.html#v:lua-call)
 
 #### Caveats
 
-此变量只能用于调用函数。以下代码将始终引发错误：
+`v:lua` 变量只能用于调用函数。以下代码将始终引发错误：
 
 ```vim
-" Aliasing functions doesn't work
+" 不适用于别名一个函数
 let LuaPrint = v:lua.print
 
-" Accessing dictionaries doesn't work
+" 不适用于访问 dict
 echo v:lua.some_global_dict['key']
 
-" Using a function as a value doesn't work
+" 不适用于将函数作为值使用
 echo map([1, 2, 3], v:lua.global_callback)
 ```
+
+#### 提示
+
+在配置文件中，可以通过设置 `let g:vimsyn_embed = 'l'` 实现 .vim 文件中的 Lua 语法高亮。关于此选项的更多信息请参见 [`:help g:vimsyn_embed`](https://neovim.io/doc/user/syntax.html#g:vimsyn_embed)
 
 ## Vim 命名空间
 
