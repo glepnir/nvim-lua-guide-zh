@@ -33,6 +33,8 @@
     - [vim.api.nvim_exec()](#vimapinvim_exec)
     - [vim.api.nvim_command()](#vimapinvim_command)
       - [Tips](#tips-1)
+    - [vim.cmd](#vim.cmd)
+    - [vim.api.nvim_replace_termcodes()](#vim.api.nvim_replace_termcodes())
   - [管理 vim 的设置选项](#管理-vim-的设置选项)
     - [使用 api 函数](#使用-api-函数)
     - [使用元访问器](#使用元访问器)
@@ -523,7 +525,9 @@ true)
 print(result) -- 'hello world'
 ```
 
-**TODO**: The docs say that script-scope (`s:`) is supported, but running this snippet with a script-scoped variable throws an error. Why?
+#### Caveats
+
+在 Neovim 0.6.0 之前，`nvim_exec` 不支持 script-local 的变量 （`s:`） 。
 
 ### vim.api.nvim_command()
 
@@ -536,10 +540,21 @@ vim.api.nvim_command('set nonumber')
 vim.api.nvim_command('%s/foo/bar/g')
 ```
 
-注意：`vim.cmd` 是此函数的一个较短的别名
+### vim.cmd()
 
-```lua
+`vim.api.nvim_exec()`  的别名。只需要命令部分的参数，`output` 参数始终为 `false`
+
+```vim
 vim.cmd('buffers')
+vim.cmd([[
+let g:multiline_list = [
+            \ 1,
+            \ 2,
+            \ 3,
+            \ ]
+
+echo g:multiline_list
+]])
 ```
 
 #### Tips
@@ -555,6 +570,77 @@ vim.cmd('%s/\\Vfoo/bar/g')
 ```lua
 vim.cmd([[%s/\Vfoo/bar/g]])
 ```
+
+### vim.api.nvim_replace_termcodes()
+
+这个 API 函数允许你转义终端代码和 Vim 键码。
+
+你可能见过这样的映射：
+
+```vim
+inoremap <expr> <Tab> pumvisible() ? "\<C-N>" : "\<Tab>"
+```
+
+在 Lua 中实现相同的功能是比较困难的。你可能会像这样实现
+
+```lua
+function _G.smart_tab()
+    return vim.fn.pumvisible() == 1 and [[\<C-N>]] or [[\<Tab>]]
+end
+
+vim.api.nvim_set_keymap('i', '<Tab>', 'v:lua.smart_tab()', {expr = true, noremap = true})
+```
+
+然后你会发现这样实现上述映射只会单纯插入 `\<Tab>` 和 `\<C-N>` 两个字符串字面量……
+
+能够转义键码实际上是 Vimscript 的一项功能。  除了许多编程语言常用的转义序列（如  `\r`、`\42` 或 `\x10`）外，Vimscript 中的 `expr-quotes`（用双引号括起来的字符串）允许你转义 Vim 键码的易读形式。
+
+Lua 中并没有内置这种功能。幸运的是，Neovim 提供了一个用来转义终端代码和 Vim 键码的 API 函数：`nvim_replace_termcodes()`
+
+```lua
+print(vim.api.nvim_replace_termcodes('<Tab>', true, true, true))
+```
+
+这样调用过于冗长，我们可以创建一个方便重复调用的包装：
+
+```lua
+-- The function is called `t` for `termcodes`.
+-- You don't have to call it that, but I find the terseness convenient
+local function t(str)
+    -- Adjust boolean arguments as needed
+    return vim.api.nvim_replace_termcodes(str, true, true, true)
+end
+
+print(t'<Tab>')
+```
+
+回到先前的例子，我们可以这样实现那个映射
+
+```lua
+local function t(str)
+    return vim.api.nvim_replace_termcodes(str, true, true, true)
+end
+
+function _G.smart_tab()
+    return vim.fn.pumvisible() == 1 and t'<C-N>' or t'<Tab>'
+end
+
+vim.api.nvim_set_keymap('i', '<Tab>', 'v:lua.smart_tab()', {expr = true, noremap = true})
+```
+
+如果我们使用 `vim.keymap.set()` 函数（Neovim 0.7.0+）来设置的话就不需要转义键码，`vim.keymap.set()` 默认会自动转义返回值中的键码（`expr` 选项设置为 `true`）：
+
+```lua
+vim.keymap.set('i', '<Tab>', function()
+    return vim.fn.pumvisible() == 1 and '<C-N>' or '<Tab>'
+end, {expr = true})
+```
+
+更多信息请参见：
+
+* [`:help keycodes`](https://neovim.io/doc/user/intro.html#keycodes)
+* [`:help expr-quote`](https://neovim.io/doc/user/eval.html#expr-quote)
+* [`:help nvim_replace_termcodes()`](https://neovim.io/doc/user/api.html#nvim_replace_termcodes())
 
 ## 管理 vim 的设置选项
 
