@@ -33,8 +33,8 @@
     - [vim.api.nvim_exec()](#vimapinvim_exec)
         - [Caveats](#caveats-3)
     - [vim.api.nvim_command()](#vimapinvim_command)
-      - [Tips](#tips-1)
     - [vim.cmd](#vim.cmd)
+        - [Tips](#tips-2)
     - [vim.api.nvim_replace_termcodes()](#vim.api.nvim_replace_termcodes())
   - [管理 vim 的设置选项](#管理-vim-的设置选项)
     - [使用 api 函数](#使用-api-函数)
@@ -44,9 +44,8 @@
     - [使用元访问器](#使用元访问器-1)
       - [Caveats](#caveats-4)
   - [调用 Vimscript 函数](#调用-vimscript-函数)
-    - [vim.call()](#vimcall)
     - [vim.fn.{function}()](#vimfnfunction)
-      - [Tips](#tips-2)
+      - [Tips](#tips-3)
       - [Caveats](#caveats-5)
   - [定义映射](#定义映射)
   - [定义用户命令](#定义用户命令)
@@ -866,31 +865,9 @@ echo g:variable
 
 ## 调用 Vimscript 函数
 
-### vim.call()
-
-`vim.call()` 调用 Vimscript 函数。这可以是内置 Vim 函数，也可以是用户函数。同样，数据类型在 Lua 和 Vimscript 之间来回转换。它接受函数名，后跟要传递给该函数的参数：
-
-```lua
-print(vim.call('printf', 'Hello from %s', 'Lua'))
-
-local reversed_list = vim.call('reverse', { 'a', 'b', 'c' })
-print(vim.inspect(reversed_list)) -- { "c", "b", "a" }
-
-local function print_stdout(chan_id, data, name)
-    print(data[1])
-end
-
-vim.call('jobstart', 'ls', { on_stdout = print_stdout })
-
-vim.call('my#autoload#function')
-```
-
-See also:
-- `:help vim.call()`
-
 ### vim.fn.{function}()
 
-`vim.fn` 的功能与 `vim.call()` 完全相同，但看起来更像是原生 Lua 函数调用
+`vim.fn` 可以用来调用 Vimscript 函数。数据类型在 Lua 和 Vimscript 之间自动转换。
 
 ```lua
 print(vim.fn.printf('Hello from %s', 'Lua'))
@@ -911,12 +888,19 @@ Hashes `#` 不是 Lua 中识别符的有效字符，因此必须使用以下语�
 vim.fn['my#autoload#function']()
 ```
 
-See also:
-- `:help vim.fn`
+`vim.fn` 的功能与 `vim.call` 完全相同，但看起来更像是原生 Lua 函数调用。
+
+和 `vim.api.nvim_call_function` 的不同之处在于，`vim.fn` 中数据类型的转换是自动的：对于浮点数类型，`vim.api.nvim_call_function` 会返回一个 table 并且它不支持 Lua 闭包作为参数；`vim.fn` 可以直接处理这些类型。
+
+更多信息请参见:
+
+- [`:help vim.fn`](https://neovim.io/doc/user/lua.html#vim.fn)
 
 #### Tips
 
-Neovim 有一个强大的内置函数库，这些函数对插件非常有用。按字母顺序排列的函数列表参见 `:help vim-function`，按主题分组的函数列表参见 `:help function-list`。
+Neovim 有一个强大的内置函数库，这些函数对插件非常有用。按字母顺序排列的函数列表参见 [`:help vim-function`](https://neovim.io/doc/user/eval.html#vim-function)，按主题分组的函数列表参见[`:help function-list`](https://neovim.io/doc/user/usr_41.html#function-list)。
+
+Neovim 中的 API 函数可以通过 `vim.api.{..}` 的方式直接调用。更多信息请参见 [`:help api`](https://neovim.io/doc/user/api.html#API)
 
 #### Caveats
 
