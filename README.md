@@ -29,8 +29,9 @@
       - [Tips](#tips)
   - [在 Lua 中使用 Vimscript](#在-lua-中使用-vimscript)
     - [vim.api.nvim_eval()](#vimapinvim_eval)
-      - [Caveats](#caveats-1)
+      - [Caveats](#caveats-2)
     - [vim.api.nvim_exec()](#vimapinvim_exec)
+        - [Caveats](#caveats-3)
     - [vim.api.nvim_command()](#vimapinvim_command)
       - [Tips](#tips-1)
     - [vim.cmd](#vim.cmd)
@@ -41,12 +42,12 @@
   - [管理 vim 的内部变量](#管理-vim-的内部变量)
     - [使用 api 函数](#使用-api-函数-1)
     - [使用元访问器](#使用元访问器-1)
-      - [Caveats](#caveats-3)
+      - [Caveats](#caveats-4)
   - [调用 Vimscript 函数](#调用-vimscript-函数)
     - [vim.call()](#vimcall)
     - [vim.fn.{function}()](#vimfnfunction)
       - [Tips](#tips-2)
-      - [Caveats](#caveats-4)
+      - [Caveats](#caveats-5)
   - [定义映射](#定义映射)
   - [定义用户命令](#定义用户命令)
   - [定义自动命令](#定义自动命令)
@@ -498,8 +499,6 @@ print(vim.api.nvim_eval('v:true')) -- true
 print(vim.api.nvim_eval('v:null')) -- nil
 ```
 
-**TODO**: is it possible for `vim.api.nvim_eval()` to return a `funcref`?
-
 #### Caveats
 
 与 `luaeval()` 不同，`vim.api.nvim_eval()` 不提供隐式 `_A` 变量来传递数据给表达式。
@@ -778,7 +777,7 @@ vim.opt.whichwrap = vim.opt.whichwrap - { 'b', 's' }
     - `vim.api.nvim_get_vvar()`
 
 除了预定义的 Vim 变量外，还可以删除它们（等同于 Vimscript 中的 `:unlet`)。局部变量 (`l:`)、脚本变量 (`s:`) 和函数参数 (`a:`) 不能操作，因为它们只在 Vim 脚本上下文中有意义，Lua 有自己的作用域规则。
-如果您不熟悉这些变量的作用，请参考 `:help internal-variables` 对其进行详细介绍。
+如果您不熟悉这些变量的作用，请参考 [`:help internal-variables`](https://neovim.io/doc/user/eval.html#internal-variables) 对其进行详细介绍。
 这些函数接受一个字符串，该字符串包含要设置 / 获取 / 删除的变量的名称以及要将其设置为的值。
 
 ```lua
@@ -802,11 +801,12 @@ vim.api.nvim_buf_del_var(3, 'some_tabpage_variable')
 
 使用这些元访问器可以更直观地操作内部变量：
 
-- `vim.g.{name}`: 全局变量
-- `vim.b.{name}`: 缓冲区变量
-- `vim.w.{name}`: 窗口变量
-- `vim.t.{name}`: 选项卡变量
-- `vim.v.{name}`: 预定义变量
+- [`vim.g`](https://neovim.io/doc/user/lua.html#vim.g): 全局变量
+- [`vim.b`](https://neovim.io/doc/user/lua.html#vim.b): 缓冲区变量
+- [`vim.w`](https://neovim.io/doc/user/lua.html#vim.w): 窗口变量
+- [`vim.t`](https://neovim.io/doc/user/lua.html#vim.t): 选项卡变量
+- [`vim.v`](https://neovim.io/doc/user/lua.html#vim.v): 预定义变量
+- [`vim.env`](https://neovim.io/doc/user/lua.html#vim.env): 环境变量
 
 ```lua
 vim.g.some_global_variable = {
@@ -815,13 +815,26 @@ vim.g.some_global_variable = {
 }
 
 print(vim.inspect(vim.g.some_global_variable)) -- { key1 = "value", key2 = 300 }
+
+-- 针对特定 buffer/window/tabpage 的变量 (Neovim 0.6+)
+vim.b[2].myvar = 1
 ```
+
+一些变量名可能包含不能在 Lua 中用作标识符的字符。你可以使用以下语法操作这些变量：`vim.g['my#variable']`。
+
+> 在 Lua 中，`some_table.some_iterm` 本质上是 `some_table["some_item"]` 的语法糖，所以`vim.g['my#variable']` 也可以写为 `vim['g']['my#variable']` 
+>
+> —— 译者注
 
 删除变量只需要将它的值设置为 nil
 
 ```lua
 vim.g.some_global_variable = nil
 ```
+
+更多信息参见：
+
+* [`:help lua-vim-variables`](https://neovim.io/doc/user/lua.html#lua-vim-variables)
 
 #### Caveats
 
@@ -832,6 +845,19 @@ let g:variable = {}
 lua vim.g.variable.key = 'a'
 echo g:variable
 " {}
+```
+
+可以使用一个临时变量来解决
+
+```vim
+let g:variable = {}
+lua << EOF
+local tmp = vim.g.variable
+tmp.key = 'a'
+vim.g.variable = tmp
+EOF
+echo g:variable
+" {'key': 'a'}
 ```
 
 这是个已知的问题
