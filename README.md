@@ -38,7 +38,6 @@
   - [管理 vim 的设置选项](#管理-vim-的设置选项)
     - [使用 api 函数](#使用-api-函数)
     - [使用元访问器](#使用元访问器)
-      - [Caveats](#caveats-2)
   - [管理 vim 的内部变量](#管理-vim-的内部变量)
     - [使用 api 函数](#使用-api-函数-1)
     - [使用元访问器](#使用元访问器-1)
@@ -694,13 +693,16 @@ print(vim.api.nvim_buf_get_option(10, 'shiftwidth')) -- 4
 
 如果您想以更“惯用”的方式设置选项，可以使用一些元访问器。它们本质上包装了上述 API 函数，并允许您像处理变量一样操作选项：
 
-- `vim.o.{option}`: 全局选项
-- `vim.bo.{option}`: buffer-local 选项
-- `vim.wo.{option}`: window-local 选项
+- [`vim.o`](https://neovim.io/doc/user/lua.html#vim.o): 行为类似于 `:let &{option-name}`
+- [`vim.go`](https://neovim.io/doc/user/lua.html#vim.go): 行为类似于 `:let &g:{option-name}`
+- [`vim.bo`](https://neovim.io/doc/user/lua.html#vim.bo): 适用于 buffer-local 选项，行为类似于 `:let &l:{option-name}`
+- [`vim.wo`](https://neovim.io/doc/user/lua.html#vim.wo): 适用于 window-local 选项，行为类似于 `:let &l:{option-name}`
 
 ```lua
-vim.o.smarttab = false
+vim.o.smarttab = false -- let &smarttab = v:false
 print(vim.o.smarttab) -- false
+vim.o.isfname = vim.o.isfname .. ',@-@' -- on Linux: let &isfname = &isfname .. ',@-@'
+print(vim.o.isfname) -- '@,48-57,/,.,-,_,+,,,#,$,%,~,=,@-@'
 
 vim.bo.shiftwidth = 4
 print(vim.bo.shiftwidth) -- 4
@@ -713,64 +715,41 @@ vim.bo[4].expandtab = true -- same as vim.api.nvim_buf_set_option(4, 'expandtab'
 vim.wo.number = true -- same as vim.api.nvim_win_set_option(0, 'number', true)
 ```
 
-See also:
-- `:help lua-vim-internal-options`
+这些访问器还有更为复杂的 `vim.opt*` 变体，它们为在 Lua 中设置选项提供了更为灵活便利的机制，就像你在 `init.vim` 中使用的 `:set`/`:setglobal`/`:setlocal`:
 
-#### Caveats
-
-**WARNING**：以下部分基于我做的几个实验。文档似乎没有提到这种行为，我也没有检查源代码来验证我的声明。
-**TODO**：有谁能确认一下吗？
-
-如果您只使用 `:set` 命令处理过选项，那么某些选项的行为可能会让您大吃一惊。
-本质上，选项可以是全局的、缓冲区 / 窗口的局部的，或者同时具有全局和局部值。
-
-`:setglobal` 命令用于设置选项的全局值。
-`:setlocal` 命令用于设置选项的本地值。
-`:set` 命令用于设置选项的全局和局部值。
-
-这是 `:help :setglobal` 的简易表格：
-
-| Command                 | global value | local value |
-|-------------------------|--------------|-------------|
-| :set option=value       | set          | set         |
-| :setlocal option=value  | -            | set         |
-| :setglobal option=value | set          | -           |
-
-Lua 中没有 `:set` 命令的等价命令，可以全局设置，也可以本地设置。
-您可能认为 `number` 选项是全局的，但文档将其描述为 `Windows-local`。这样的选项实际上是“粘性的”：当您打开一个新窗口时，它们的值是从当前窗口复制过来的。
-因此，如果您要从您的 `init.lua` 设置选项，您应该这样做：
+* `vim.opt`: 行为类似于 `:set`
+* `vim.opt_global`: 行为类似于 `:setglobal`
+* `vim.opt_local`: 行为类似于 `:setlocal`
 
 ```lua
-vim.wo.number = true
+vim.opt.smarttab = false
+print(vim.opt.smarttab:get()) -- false
 ```
 
-`shiftwidth`、`expandtab`、`undofile` 等本地到缓冲区的选项更容易混淆。假设您的 `init.lua` 包含以下代码：
+一些选项也可以通过 Lua 的 table 来设置：
 
 ```lua
-vim.bo.expandtab = true
+vim.opt.completeopt = {'menuone', 'noselect'}
+print(vim.inspect(vim.opt.completeopt:get())) -- { "menuone", "noselect" }
 ```
 
-当你启动 Neovim 并开始编辑时，一切都很好：按下 `<Tab>` 键会插入空格，而不是制表符。打开另一个缓冲区，您会突然返回到选项卡...
-
-在全局设置它具有相反的问题：
+对于类似于 list/map/set 的选项，它们对应的包装器还实现了各种方法与元方法，行为类似于 Vimscript 中的 `:set+=`/`:set^=`/`:set-=`。
 
 ```lua
-vim.o.expandtab = true
+vim.opt.shortmess:append({ I = true })
+-- alternative form:
+vim.opt.shortmess = vim.opt.shortmess + { I = true }
+
+vim.opt.whichwrap:remove({ 'b', 's' })
+-- alternative form:
+vim.opt.whichwrap = vim.opt.whichwrap - { 'b', 's' }
 ```
 
-这次，您在第一次启动 Neovim 时插入选项卡。打开另一个缓冲区，然后按 `<Tab>` 即可实现预期效果。
-简而言之，如果您想要正确的行为，“本地到缓冲区”的选项必须这样设置：
+关于 `vim.opt` 的更多信息请参见：[`:help vim.opt`](https://neovim.io/doc/user/lua.html#vim.opt)
 
-```lua
-vim.bo.expandtab = true
-vim.o.expandtab = true
-```
+更多信息请参见：
 
-See also:
-- `:help :setglobal`
-- `:help global-local`
-
-**TODO**: Why does this happen? Do all buffer-local options behave this way? Might be related to [neovim/neovim#7658](https://github.com/neovim/neovim/issues/7658) and [vim/vim#2390](https://github.com/vim/vim/issues/2390). Also for window-local options: [neovim/neovim#11525](https://github.com/neovim/neovim/issues/11525) and [vim/vim#4945](https://github.com/vim/vim/issues/4945)
+- [`:help lua-vim-options`](https://neovim.io/doc/user/lua.html#lua-vim-options)
 
 ## 管理 vim 的内部变量
 
