@@ -48,6 +48,8 @@
       - [Tips](#tips-3)
       - [Caveats](#caveats-5)
   - [定义映射](#定义映射)
+      - [API 函数](#API 函数)
+      - [vim.keymap](#vim.keymap)
   - [定义用户命令](#定义用户命令)
   - [定义自动命令](#定义自动命令)
   - [定义语法高亮](#定义语法高亮)
@@ -922,6 +924,8 @@ end
 
 ## 定义映射
 
+### API 函数
+
 Neovim 提供了一系列的 api 函数来设置获取和删除映射：
 
 - 全局映射：
@@ -953,7 +957,7 @@ Neovim 提供了一系列的 api 函数来设置获取和删除映射：
 
 第三个参数是包含映射右侧（要执行的命令）的字符串。
 
-最后一个参数是一个表，包含 `:help :map-arguments` 中定义的映射的布尔值选项（包括 `noremap`，不包括 `buffer`)。
+最后一个参数是一个表，包含 [`:help :map-arguments`](https://neovim.io/doc/user/map.html#:map-arguments) 中定义的映射的布尔值选项（包括 `noremap`，不包括 `buffer`)。
 
 缓冲区-本地映射也将缓冲区编号作为其第一个参数(`0` 设置当前缓冲区的映射）。
 
@@ -963,6 +967,15 @@ vim.api.nvim_set_keymap('n', '<leader><Space>', ':set hlsearch!<CR>', { noremap 
 
 vim.api.nvim_buf_set_keymap(0, '', 'cc', 'line(".") == 1 ? "cc" : "ggcc"', { noremap = true, expr = true })
 -- :noremap <buffer> <expr> cc line('.') == 1 ? 'cc' : 'ggcc'
+
+vim.api.nvim_set_keymap('n', '<Leader>ex', '', {
+    noremap = true,
+    callback = function()
+        print('My example')
+    end,
+    -- Since Lua function don't have a useful string representation, you can use the "desc" option to document your mapping
+    desc = 'Prints "My example" in the message area',
+})
 ```
 
 `vim.api.nvim_get_keymap()` 接受一个字符串，该字符串包含您想要映射列表的模式的短名称（见上表）。返回值是包含该模式的所有全局映射的表。
@@ -993,13 +1006,198 @@ vim.api.nvim_buf_del_keymap(0, 'i', '<Tab>')
 -- :iunmap <buffer> <Tab>
 ```
 
+### vim.keymap
+
+:warning: 本节讨论的函数仅适用于 Neovim 0.7.0+
+
+Neovim 提供了两个函数来设置 / 删除映射：
+
+* [`vim.keymap.set()`](https://neovim.io/doc/user/lua.html#vim.keymap.set())
+* [`vim.keymap.del()`](https://neovim.io/doc/user/lua.html#vim.keymap.del())
+
+它们是上述 API 函数的语法糖版本。
+
+`vim.keymap.set()` 第一个参数是字符串，代表映射生效的模式，也可以是一个字符串 table，这样可以一次性定义多个模式下的映射：
+
+```lua
+vim.keymap.set('n', '<Leader>ex1', '<Cmd>lua vim.notify("Example 1")<CR>')
+vim.keymap.set({'n', 'c'}, '<Leader>ex2', '<Cmd>lua vim.notify("Example 2")<CR>')
+```
+
+第二个参数是映射的左侧，是字符串类型
+
+第三个参数是映射的右侧，既可以是字符串也可以是一个 Lua 函数：
+
+```lua
+vim.keymap.set('n', '<Leader>ex1', '<Cmd>echomsg "Example 1"<CR>')
+vim.keymap.set('n', '<Leader>ex2', function() print("Example 2") end)
+vim.keymap.set('n', '<Leader>pl1', require('plugin').plugin_action)
+-- To avoid the startup cost of requiring the module, you can wrap it in a function to require it lazily when invoking the mapping:
+vim.keymap.set('n', '<Leader>pl2', function() require('plugin').plugin_action() end)
+```
+
+第四个参数是是一个选项的 table，它是可选的，对应于传递给 `vim.apt.nvim_set_keymap()` 的选项，并添加了一些内容（完整列表请参见 [`:help vim.keymap.set()`](https://neovim.io/doc/user/lua.html#vim.keymap.set())）。
+
+```lua
+vim.keymap.set('n', '<Leader>ex1', '<Cmd>echomsg "Example 1"<CR>', {buffer = true})
+vim.keymap.set('n', '<Leader>ex2', function() print('Example 2') end, {desc = 'Prints "Example 2" to the message area'})
+```
+
+使用 Lua 函数定义映射不同于使用字符串。  像 `:nmap <Leader>ex1`  之类的显示映射信息的常用方法不会输出有用的信息（映射到的字符串本身），而只会显示 Lua 函数。  建议添加一个 `desc` 项来描述你的按键映射的行为。这对于记录插件映射尤其重要，用户可以更轻松地了解案件映射的用法。
+
+这个 API 的有用之处在于它消除了 Vim 映射的历史遗留问题：
+
+* 映射默认是 `noremap` 的，除非 `rhs` 是一个 `<Plug>` 映射。这意味着你很少需要考虑映射是否应该是递归的：
+
+    ```lua
+    vim.keymap.set('n', '<Leader>test1', '<Cmd>echo "test"<CR>')
+    -- :nnoremap <Leader>test <Cmd>echo "test"<CR>
+    
+    -- 如果你确定要设置一个递归的映射, 把 "remap" 选项设置为 "true"
+    vim.keymap.set('n', '>', ']', {remap = true})
+    -- :nmap > ]
+    
+    -- 除非是递归映射，否则 <Plug> 映射不会起作用, vim.keymap.set() 会自动为你处理
+    vim.keymap.set('n', '<Leader>plug', '<Plug>(plugin)')
+    -- :nmap <Leader>plug <Plug>(plugin)
+    ```
+
+* 在 `expr` 映射中，`nvim_replace_termcodes()` 会被自动应用于 Lua 函数返回的字符串
+
+    ```lua
+    vim.keymap.set('i', '<Tab>', function()
+        return vim.fn.pumvisible == 1 and '<C-N>' or '<Tab>'
+    end, {expr = true})
+    ```
+
+更多信息请参见：
+
+* [`:help recursive_mapping`](https://neovim.io/doc/user/map.html#recursive_mapping)
+
+`vim.keymap.del()` 工作原理相同，但是效果是删除映射：
+
+```lua
+vim.keymap.del('n', '<Leader>ex1')
+vim.keymap.del({'n', 'c'}, '<Leader>ex2', {buffer = true})
+```
+
 ## 定义用户命令
 
-目前在 Lua 中没有创建用户命令的接口。不过已经在计划内：
+:warning: 本节讨论的 API 函数仅适用于 Neovim 0.7.0+
 
-- [Pull request #11613](https://github.com/neovim/neovim/pull/11613)
+Neovim 提供了如下 API 函数来创建用户命令
 
-目前，您最好使用 Vimscript 创建命令。
+* 全局用户命令
+    * [`vim.api.nvim_create_user_command()`](https://neovim.io/doc/user/api.html#nvim_create_user_command())
+    * [`vim.api.nvim_del_user_command()`](https://neovim.io/doc/user/api.html#nvim_del_user_command())
+* Buffer-local 的用户命令
+    * [`vim.api.nvim_buf_create_user_command()`](https://neovim.io/doc/user/api.html#nvim_buf_create_user_command())
+    * [`vim.api.nvim_buf_del_user_command()`](https://neovim.io/doc/user/api.html#nvim_buf_del_user_command())
+
+以 `vim.api.nvim_create_user_command()` 为例说明用法
+
+此函数的第一个参数是命令的名字（必须以大写字母开头）。
+
+第二个参数是调用该命令时要执行的代码。它可以是：
+
+一个字符串（在这种情况下它将作为 Vimscript 执行）。你可以像使用 `:command` 一样使用转义序列，譬如 `<q-args>`、`<range>` 等
+
+```lua
+vim.api.nvim_create_user_command('Upper', 'echo toupper(<q-args>)', { nargs = 1 })
+-- :command! -nargs=1 Upper echo toupper(<q-args>)
+
+vim.cmd('Upper hello world') -- prints "HELLO WORLD"
+```
+
+或者是一个 Lua 函数。它接受一个类似字典的 table，其中包含通常是由转义序列提供的数据（可用的所有键请参见 [`:help nvim_create_user_command()`](https://neovim.io/doc/user/api.html#nvim_create_user_command())）
+
+```lua
+vim.api.nvim_create_user_command(
+    'Upper',
+    function(opts)
+        print(string.upper(opts.args))
+    end,
+    { nargs = 1 }
+)
+```
+
+第三个参数是一个包含命令属性的 table（请参见 [`:help command-attributes`](https://neovim.io/doc/user/map.html#command-attributes)）。值得注意的是，由于你可以使用 `vim.api.nvim_buf_create_user_command()` 来创建 buffer-local 的用户命令，所以 `-buffer` 不是一个有效的属性。
+
+此外还有两种属性可用：
+
+* `desc` 属性是你在定义为 Lua 回调函数的命令上运行 `:command {cmd}` 时显示的内容。与上文中的键盘映射类似，我们建议在定义为 Lua 函数的命令中加入此属性。
+* `force` 属性相当于调用 `:command!` 并且替换已经存在的同名命令。与 Vimscript 不同，它的默认值为 `true`
+
+除了 [`:help :command-complete`](https://neovim.io/doc/user/map.html#:command-complete) 中列出的属性之外，`-complete` 还可以设置为一个 Lua 函数。
+
+```lua
+vim.api.nvim_create_user_command('Upper', function() end, {
+    nargs = 1,
+    complete = function(ArgLead, CmdLine, CursorPos)
+        -- return completion candidates as a list-like table
+        return { 'foo', 'bar', 'baz' }
+    end,
+})
+```
+
+Buffer-local 的用户命令把 buffer 编号作为第一个参数。这比 `-buffer` 更优，后者只能为当前的 buffer 定义命令。
+
+```lua
+vim.api.nvim_buf_create_user_command(4, 'Upper', function() end, {})
+```
+
+`vim.api.nvim_del_user_command()` 的参数是要删除命令的名字。
+
+```lua
+vim.api.nvim_del_user_command('Upper')
+-- :delcommand Upper
+```
+
+同样的，`vim.api.nvim_buf_del_user_command()` 也把 buffer 编号作为第一个参数，`0` 代表当前的 buffer。
+
+```lua
+vim.api.nvim_buf_del_user_command(4, 'Upper')
+```
+
+更多信息请参见：
+
+* [`:help nvim_create_user_command`](https://neovim.io/doc/user/api.html#nvim_create_user_command())
+* [`:help 40.2`](https://neovim.io/doc/user/usr_40.html#40.2)
+* [`:help command-attributes`](https://neovim.io/doc/user/map.html#command-attributes)
+
+### Caveats
+
+`-complete=custom` 属性自动选出合适的候选补全并且支持内置的通配符（[`:help wildcard`](https://neovim.io/doc/user/editing.html#wildcard)）
+
+```vim
+function! s:completion_function(ArgLead, CmdLine, CursorPos) abort
+    return join([
+        \ 'strawberry',
+        \ 'star',
+        \ 'stellar',
+        \ ], "\n")
+endfunction
+
+command! -nargs=1 -complete=custom,s:completion_function Test echo <q-args>
+" Typing `:Test st[ae]<Tab>` returns "star" and "stellar"
+```
+
+把 `complete` 设置为 Lua 函数的话，它的行为会类似于 `customlist` ，Neovim 不会筛选函数返回的候选列表
+
+```lua
+vim.api.nvim_create_user_command('Test', function() end, {
+    nargs = 1,
+    complete = function(ArgLead, CmdLine, CursorPos)
+        return {
+            'strawberry',
+            'star',
+            'stellar',
+        }
+    end,
+})
+
+-- Typing `:Test z<Tab>` returns all the completion results because the list was not filtered
+```
 
 ## 定义自动命令
 
