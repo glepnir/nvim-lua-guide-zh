@@ -769,7 +769,7 @@ vim.b[2].myvar = 1
 
 一些变量名可能包含不能在 Lua 中用作标识符的字符。你可以使用以下语法操作这些变量：`vim.g['my#variable']`。
 
-> 在 Lua 中，`some_table.some_iterm` 本质上是 `some_table["some_item"]` 的语法糖，所以`vim.g['my#variable']` 也可以写为 `vim['g']['my#variable']` 
+> 在 Lua 中，`some_table.some_item` 本质上是 `some_table["some_item"]` 的语法糖，所以`vim.g['my#variable']` 也可以写为 `vim['g']['my#variable']` 
 >
 > —— 译者注
 
