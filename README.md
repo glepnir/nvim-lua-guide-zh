@@ -2,7 +2,7 @@
 
 [nvim-lua-guide](https://github.com/nanotee/nvim-lua-guide) 中文版简易教程
 
-译者: Neovim Core Developer
+译者：Neovim Core Developer
 
 :arrow_upper_left: （感觉太多太杂乱？使用 Github TOC 来浏览大纲！）
 
@@ -47,9 +47,9 @@ Lua 是一种非常干净和简单的语言。它很容易学习，特别是如�
 
 ### init.lua
 
-Neovim 支持从 `init.lua` 文件加载配置而不是通常的 `init.vim` 文件。  
+Neovim 支持从 `init.lua` 文件加载配置而不是通常的 `init.vim` 文件。
 
-注意：`init.lua` 文件是完全可选的。Neovim 仍然支持从 `init.vim` 加载配置。请记住，Neovim 的一些功能还没有 100% 暴露给 Lua 模块部分。 
+注意：`init.lua` 文件是完全可选的。Neovim 仍然支持从 `init.vim` 加载配置。请记住，Neovim 的一些功能还没有 100% 暴露给 Lua 模块部分。
 
 ### 模块
 
@@ -223,7 +223,7 @@ Neovim 提供了三种执行命令来加载 Lua 文件
 
 `:runtime` 与上述两种命令有所不同，它使用 `'runtimepath'` 选项来决定加载哪个文件。更多细节信息请参见  [`:help :runtime`](https://neovim.io/doc/user/repeat.html#:runtime)
 
-更多信息请参见:
+更多信息请参见：
 
 - [`:help :luafile`](https://neovim.io/doc/user/lua.html#:luafile)
 - [`:help :source`](https://neovim.io/doc/user/repeat.html#:source)
@@ -769,7 +769,7 @@ vim.b[2].myvar = 1
 
 一些变量名可能包含不能在 Lua 中用作标识符的字符。你可以使用以下语法操作这些变量：`vim.g['my#variable']`。
 
-> 在 Lua 中，`some_table.some_item` 本质上是 `some_table["some_item"]` 的语法糖，所以`vim.g['my#variable']` 也可以写为 `vim['g']['my#variable']` 
+> 在 Lua 中，`some_table.some_item` 本质上是 `some_table["some_item"]` 的语法糖，所以`vim.g['my#variable']` 也可以写为 `vim['g']['my#variable']`
 >
 > —— 译者注
 
@@ -840,7 +840,7 @@ vim.fn['my#autoload#function']()
 
 和 `vim.api.nvim_call_function` 的不同之处在于，`vim.fn` 中数据类型的转换是自动的：对于浮点数类型，`vim.api.nvim_call_function` 会返回一个 table 并且它不支持 Lua 闭包作为参数；`vim.fn` 可以直接处理这些类型。
 
-更多信息请参见:
+更多信息请参见：
 
 - [`:help vim.fn`](https://neovim.io/doc/user/lua.html#vim.fn)
 
@@ -998,12 +998,12 @@ vim.keymap.set('n', '<Leader>ex2', function() print('Example 2') end, {desc = 'P
     ```lua
     vim.keymap.set('n', '<Leader>test1', '<Cmd>echo "test"<CR>')
     -- :nnoremap <Leader>test <Cmd>echo "test"<CR>
-    
-    -- 如果你确定要设置一个递归的映射, 把 "remap" 选项设置为 "true"
+
+    -- 如果你确定要设置一个递归的映射，把 "remap" 选项设置为 "true"
     vim.keymap.set('n', '>', ']', {remap = true})
     -- :nmap > ]
-    
-    -- 除非是递归映射，否则 <Plug> 映射不会起作用, vim.keymap.set() 会自动为你处理
+
+    -- 除非是递归映射，否则 <Plug> 映射不会起作用，vim.keymap.set() 会自动为你处理
     vim.keymap.set('n', '<Leader>plug', '<Plug>(plugin)')
     -- :nmap <Leader>plug <Plug>(plugin)
     ```
