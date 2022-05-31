@@ -1201,31 +1201,21 @@ vim.api.nvim_create_user_command('Test', function() end, {
 
 ## 定义自动命令
 
-AUGROUP 和 AUTOCOMMAND 还没有接口，但正在处理
+（本节内容尚未完成）
 
-- [Pull request #12378](https://github.com/neovim/neovim/pull/12378)
+Neovim 0.7.0 为创建自动命令提供了相应的 API 函数。更多细节请参见 `:help api-autocmd`
 
-不过你可以使用 `vim.api.nvim_command` 来创建自动命令，例如：
-
-```lua
--- Create autocmd
-vim.api.nvim_command('autocmd FileType * do something')
-
--- Create augroup
-vim.api.nvim_command('augroup groupname')
-vim.api.nvim_command('autocmd do something')
-vim.api.nvim_command('augroup end')
-```
+* [Pull request #14661](https://github.com/neovim/neovim/pull/14661) (lua: autocmds take 2)
 
 ## 定义语法高亮
 
-`vim.api.nvim_buf_add_highlight` 为 buffer 指定的行和位置添加高亮
+（本节内容尚未完成）
 
-Neovim 0.5 集成 treesitter，对于语法高亮相比之前使用正则的方式更加的高效，[nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
+Neovim 0.7.0 为处理高亮组提供了相应的 API 函数。更多信息请参见：
 
-- `:help lua-treesitter`
-
-我个人制作的主题 [zephyr-nvim](https://github.com/glepnir/zephyr-nvim) 语法高亮基于 nvim-treesitter
+* [`:help nvim_set_hl()`](https://neovim.io/doc/user/api.html#nvim_set_hl())
+* [`:help nvim_get_hl_by_id()`](https://neovim.io/doc/user/api.html#nvim_get_hl_by_id())
+* [`:help nvim_get_hl_by_name()`](https://neovim.io/doc/user/api.html#nvim_get_hl_by_name())
 
 ## General tips and recommendations
 
@@ -1292,6 +1282,10 @@ See also:
 `vim.treesitter` 是 [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) 的 neovim 集成，如果你想了解更多可以参考 [presentation (38:37)](https://www.youtube.com/watch?v=Jes3bD6P0To).
 
 The [nvim-treesitter](https://github.com/nvim-treesitter/) organisation hosts various plugins taking advantage of the library.
+
+> [glepnir](https://github.com/glepnir) 制作的主题 [zephyr-nvim](https://github.com/glepnir/zephyr-nvim) 语法高亮基于 nvim-treesitter
+>
+> —— 译者注
 
 See also:
 - `:help lua-treesitter`
