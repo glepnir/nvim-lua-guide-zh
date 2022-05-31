@@ -1219,63 +1219,215 @@ Neovim 0.7.0 为处理高亮组提供了相应的 API 函数。更多信息请�
 
 ## General tips and recommendations
 
-**TODO**:
-- Hot-reloading of modules
-- `vim.validate()`?
-- Add stuff about unit tests? I know Neovim uses the [busted](https://olivinelabs.com/busted/) framework, but I don't know how to use it for plugins
-- Best practices? I'm not a Lua wizard so I wouldn't know
-- How to use LuaRocks packages ([wbthomason/packer.nvim](https://github.com/wbthomason/packer.nvim)?)
+### 重新加载缓存的模块
+
+在 Lua 中，`require()` 函数会缓存已加载的模块，这对提升性能是非常有用的。但是它会对插件的工作造成影响，因为已加载的模块不会在后续的 `require()` 调用中更新。
+
+如果你想刷新某个特定模块的缓存，那么你必须去修改全局的 `package.loaded` :
+
+```lua
+package.loaded['modname'] = nil
+require('modname') -- loads an updated version of module 'modname'
+```
+
+[nvim-lua/plenary.nvim](https://github.com/nvim-lua/plenary.nvim) 插件提供了实现此功能的[自定义函数](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/reload.lua)
+
+### 不要填充 Lua 字符串！
+
+当使用双重中括号的字符串时，尽量不要填充多余的字符（如空格、制表符等）！当字符没有特殊意义的时候这样做无可非议；但是当字符具有特殊意义时，这样做可能会导致一些难以发现的问题
+
+```lua
+vim.api.nvim_set_keymap('n', '<Leader>f', [[ <Cmd>call foo()<CR> ]], {noremap = true})
+```
+
+在上面的例子中，`<Leader>f` 被映射到了 `<Space><Cmd>call foo()<CR><Space>` ，而不是我们期望的 `<Cmd>call foo()<CR>`。
+
+### 关于 Vimscript <-> Lua 之间类型转换的注意事项
+
+#### 变量转换时会创建一个副本
+
+这意味着你对对象（从 Lua 转换到 Vimscript 的对象或者反过来）的引用进行修改不会影响到原对象。
+
+例如，Vimscript 中的 `map()` 函数就地修改了一个变量：
+
+```vim
+let s:list = [1, 2, 3]
+let s:newlist = map(s:list, {_, v -> v * 2})
+
+echo s:list
+" [2, 4, 6]
+echo s:newlist
+" [2, 4, 6]
+echo s:list is# s:newlist
+" 1
+```
+
+在 Lua 中调用这个函数，它改变的将会是参数的一个副本：
+
+```lua
+local tbl = {1, 2, 3}
+local newtbl = vim.fn.map(tbl, function(_, v) return v * 2 end)
+
+print(vim.inspect(tbl)) -- { 1, 2, 3 }
+print(vim.inspect(newtbl)) -- { 2, 4, 6 }
+print(tbl == newtbl) -- false
+```
+
+#### 并不是总能进行类型转换
+
+这主要影响函数和 table：
+
+混合列表和字典的 Lua table 是无法转换的：
+
+```lua
+print(vim.fn.count({1, 1, number = 1}, 1))
+-- E5100: Cannot convert given lua table: table should either have a sequence of positive integer keys or contain only string keys
+```
+
+尽管你可以在 Lua 中通过 `vim.fn` 调用 VIm 函数，但是你不能保存对它们的引用。这可能会导致一些意外的行为：
+
+```lua
+local FugitiveHead = vim.fn.funcref('FugitiveHead')
+print(FugitiveHead) -- vim.NIL
+
+vim.cmd("let g:test_dict = {'test_lambda': {-> 1}}")
+print(vim.g.test_dict.test_lambda) -- nil
+print(vim.inspect(vim.g.test_dict)) -- {}
+```
+
+把 Lua 函数作为参数传给 Vim 函数是可行的，但是不能把它们存在 Vim 变量中（Neovim 0.7.0+ 中修复了这个问题）：
+
+```lua
+-- This works:
+vim.fn.jobstart({'ls'}, {
+    on_stdout = function(chan_id, data, name)
+        print(vim.inspect(data))
+    end
+})
+
+-- This doesn't:
+vim.g.test_dict = {test_lambda = function() return 1 end} -- Error: Cannot convert given lua type
+```
+
+值得注意的是，在 Vimscript 中使用 `luaeval()` 执行相同操作却是可行的：
+
+```vim
+let g:test_dict = {'test_lambda': luaeval('function() return 1 end')}
+echo g:test_dict
+" {'test_lambda': function('<lambda>4714')}
+```
+
+#### Vim booleans
+
+在 Vim 脚本中，一种常见的情况是使用 `1` 或 `0` 来代表布尔值。事实上，直到版本 7.4.1154，Vim 才有单独的布尔类型。
+
+在 Vimscript 中，Lua 的布尔值会被转换为真正的布尔值，而不是数字：
+
+```vim
+lua vim.g.lua_true = true
+echo g:lua_true
+" v:true
+lua vim.g.lua_false = false
+echo g:lua_false
+" v:false
+```
+
+### 设置 linters/language servers
+
+如果你使用 liner 和 / 或 language server 来获得 Lua 项目的自动补全和错误检查，你可能需要为它们配置 Neovim 特定的设置。以下是一些流行工具的推荐配置：
+
+#### luacheck
+
+你可以通过把此配置放入 `~/.luacheckrc` （或 `$XDG_CONFIG_HOME/luacheck/.luacheckrc`）中来让 [luacheck](https://github.com/mpeterv/luacheck/) 识别全局的 `vim` 变量：
+
+```lua
+globals = {
+    "vim",
+}
+```
+
+[Alloyed/lua-lsp ](https://github.com/Alloyed/lua-lsp/) 使用 `luacheck` 提供 linting 并读取相同的文件。
+
+有关如何配置 `luacheck` 的更多信息，请参见它的[文档](https://luacheck.readthedocs.io/en/stable/config.html)
+
+#### sumneko/lua-language-server
+
+[nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/) 仓库中包含了如何配置 sumneko/lua-language-server 的[说明](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#sumneko_lua)（示例使用内置 LSP 客户端，但其他 LSP 客户端实现的配置应该相同）。
+
+有关如何配置 [sumneko/lua-language-server](https://github.com/sumneko/lua-language-server/) 的更多信息，请参阅 ["Setting"](https://github.com/sumneko/lua-language-server/wiki/Setting)
+
+#### coc.nvim
+
+[coc.nvim](https://github.com/neoclide/coc.nvim/) 的 [rafcamlet/coc-nvim-lua](https://github.com/rafcamlet/coc-nvim-lua/) 补全源为 Neovim 标准库提供了补全项。
+
+### 调试 Lua 代码
+
+你可以使用 [jbyuki/one-small-step-for-vimkind](https://github.com/jbyuki/one-small-step-for-vimkind) 调试在单独的 Neovim 实例中运行的 Lua 代码
+
+该插件使用 [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/)。连接到一个 debug adapter 需要 DAP 客户端，例如 [mfussenegger/nvim-dap](https://github.com/mfussenegger/nvim-dap/) 或 [puremourning/vimspector](https://github.com/puremourning/vimspector/)。
+
+### 调试 Lua 设置的按键映射 / 用户命令 / 自动命令
+
+`:verbose` 命令允许你查看 按键映射 / 用户命令 / 自动命令的定义位置：
+
+```vim
+:verbose map m
+```
+
+```vim
+n  m_          * <Cmd>echo 'example'<CR>
+        Last set from ~/.config/nvim/init.vim line 26
+```
+
+默认情况下，出于性能原因，此功能在 Lua 中是禁用的。你可以通过使用大于 0 的 verbose level 启动 Neovim 来启用它：
+
+```shell
+nvim -V1
+```
+
+更多信息请参见：
+
+* [`:help 'verbose'`](https://neovim.io/doc/user/options.html#'verbose')
+* [`:help -V`](https://neovim.io/doc/user/starting.html#-V)
+* [neovim/neovim#15079](https://github.com/neovim/neovim/pull/15079)
+
+### 测试 Lua 代码
+
+* [plenary.nvim: test harness](https://github.com/nvim-lua/plenary.nvim/#plenarytest_harness)
+* [notomo/vusted](https://github.com/notomo/vusted)
+
+### 使用 Luarocks 包
+
+[wbthomason/packer.nvim](https://github.com/wbthomason/packer.nvim) 支持 Luarocks 包。它的 [README](https://github.com/wbthomason/packer.nvim/#luarocks-support) 中提供了有关如何设置的说明
 
 ## Miscellaneous
 
 ### vim.loop
 
-`vim.loop` 是暴露 LibUV 接口的模块。
-
-```lua
-local stop_signal = false
-
-local function set_variable()
-  for i = 1, 10, 1 do
-    print(i)
-    if i == 5 then
-      stop_signal= true
-      break
-    end
-  end
-end
-
-local function start_close_timer()
-  local timer = vim.loop.new_timer()
-  timer:start(10,1,vim.schedule_wrap(function()
-  if stop_signal == true and timer:is_closing() == false then
-    print('stop timer and close it')
-    timer:stop()
-    timer:close()
-  end
-  end))
-end
-
-set_variable()
-start_close_timer()
-```
+`vim.loop` 是暴露 LibUV 接口的模块。一些相关资源：
 
 - [Official documentation for LibUV](https://docs.libuv.org/en/v1.x/)
 - [Luv documentation](https://github.com/luvit/luv/blob/master/docs.md)
 - [teukka.tech - Using LibUV in Neovim](https://teukka.tech/vimloop.html)
 
-See also:
-- `:help vim.loop`
+更多信息请参见：
+- [`:help vim.loop`](https://neovim.io/doc/user/lua.html#vim.loop)
 
 ### vim.lsp
 
-`vim.lsp` 是内置的 lsp 库。官方的 lsp 配置插件 [neovim/nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/)
+`vim.lsp` 是内置的 lsp 库。官方的 lsp 配置插件 [neovim/nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/) 包含一些流行的 language server 的默认配置。
 
-- [nvim-lua/completion-nvim](https://github.com/nvim-lua/completion-nvim)
-- [nvim-lua/diagnostic-nvim](https://github.com/nvim-lua/diagnostic-nvim)
+客户端的行为可以使用 "sp-handlers" 进行配置。更多信息请参见：
 
-See also:
-- `:help lsp`
+- [`:help lsp-handler`](https://neovim.io/doc/user/lsp.html#lsp-handler)
+- [neovim/neovim#12655](https://github.com/neovim/neovim/pull/12655)
+- [how to migrate from diagnostic-nvim](https://github.com/nvim-lua/diagnostic-nvim/issues/73#issue-737897078)
+
+你可能还想了解一下一些基于 LSP 客户端构建的[插件](https://github.com/rockerBOO/awesome-neovim#lsp)
+
+更多信息请参见：
+
+- [`:help lsp`](https://neovim.io/doc/user/lsp.html#LSP)
 
 ### vim.treesitter
 
@@ -1288,21 +1440,25 @@ The [nvim-treesitter](https://github.com/nvim-treesitter/) organisation hosts va
 > —— 译者注
 
 See also:
-- `:help lua-treesitter`
+- [`:help lua-treesitter`](https://neovim.io/doc/user/treesitter.html#lua-treesitter)
 
 ### Transpilers
 
-One advantage of using Lua is that you don't actually have to write Lua code! There is a multitude of transpilers available for the language.
+使用 Lua 的一个优点是您实际上不必编写 Lua 代码！有许多其他语言可以转译到 Lua。
 
 - [Moonscript](https://moonscript.org/)
 
-Probably one of the most well-known transpilers for Lua. Adds a lots of convenient features like classes, list comprehensions or function literals. The [svermeulen/nvim-moonmaker](https://github.com/svermeulen/nvim-moonmaker) plugin allows you to write Neovim plugins and configuration directly in Moonscript.
+可能是 Lua 最著名的转译器之一。添加了许多方便的功能，如类、列表推导或函数字面量。  [svermeulen/nvim-moonmaker](https://github.com/svermeulen/nvim-moonmaker) 插件允许您直接在 Moonscript 中编写 Neovim 插件和配置。
 
 - [Fennel](https://fennel-lang.org/)
 
-A lisp that compiles to Lua. You can write configuration and plugins for Neovim in Fennel with the [Olical/aniseed](https://github.com/Olical/aniseed) plugin. Additionally, the [Olical/conjure](https://github.com/Olical/conjure) plugin provides an interactive development environment that supports Fennel (among other languages).
+可以编译为 Lua 的 lisp 方言。你可以使用 [Olical/aniseed](https://github.com/Olical/aniseed) 或 [Hotpot](https://github.com/rktjmp/hotpot.nvim) 插件在 Fennel 中为 Neovim  编写配置和插件。此外，[Olical/conjure](https://github.com/Olical/conjure) 插件提供了一个支持 Fennel（以及其他语言）的交互式开发环境。
 
-Other interesting projects:
+* [Teal](https://github.com/teal-language/tl)
+
+Teal 这个名字来自 TL（typed lua）的发音。这代表了它的目标——向 lua 添加强类型，同时语法尽量保持接近标准 lua 语法。  [nvim-teal-maker](https://github.com/svermeulen/nvim-teal-maker) 插件可用于直接在 Teal 中编写 Neovim 插件或配置文件
+
+其他一些有趣的项目：
 
 - [TypeScriptToLua/TypeScriptToLua](https://github.com/TypeScriptToLua/TypeScriptToLua)
 - [teal-language/tl](https://github.com/teal-language/tl)
