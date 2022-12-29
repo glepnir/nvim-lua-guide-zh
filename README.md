@@ -1,5 +1,8 @@
 # 在 neovim 中使用 Lua
 
+**在neovim 0.9版本中添加了lua教程，如果你使用该版本的neovim可以使用 `:h lua-guide` 查看**
+**对于英文不好的同学那么此文档对你仍然又用**
+
 [nvim-lua-guide](https://github.com/nanotee/nvim-lua-guide) 中文版简易教程
 
 译者：Neovim Core Developer
@@ -989,7 +992,7 @@ vim.keymap.set('n', '<Leader>ex1', '<Cmd>echomsg "Example 1"<CR>', {buffer = tru
 vim.keymap.set('n', '<Leader>ex2', function() print('Example 2') end, {desc = 'Prints "Example 2" to the message area'})
 ```
 
-使用 Lua 函数定义映射不同于使用字符串。  像 `:nmap <Leader>ex1`  之类的显示映射信息的常用方法不会输出有用的信息（映射到的字符串本身），而只会显示 Lua 函数。  建议添加一个 `desc` 项来描述你的按键映射的行为。这对于记录插件映射尤其重要，用户可以更轻松地了解案件映射的用法。
+使用 Lua 函数定义映射不同于使用字符串。  像 `:nmap <Leader>ex1`  之类的显示映射信息的常用方法不会输出有用的信息（映射到的字符串本身），而只会显示 Lua 函数。  建议添加一个 `desc` 项来描述你的按键映射的行为。这对于记录插件映射尤其重要，用户可以更轻松地了解按键映射的用法。
 
 这个 API 的有用之处在于它消除了 Vim 映射的历史遗留问题：
 
