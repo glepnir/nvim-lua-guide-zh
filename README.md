@@ -191,7 +191,7 @@ EOF
 :luado return 'hello world'
 ```
 
-提供了两个隐式的 `line` 和 `linenr` 变量。`line` 是被迭代的行的文本，而 `linenr` 是它的编号。以下命令将可以被 2 整数的行转成大写：
+提供了两个隐式的 `line` 和 `linenr` 变量。`line` 是被迭代的行的文本，而 `linenr` 是它的编号。以下命令将可以被 2 整除的行转成大写：
 
 ```vim
 :luado if linenr % 2 == 0 then return line:upper() end
